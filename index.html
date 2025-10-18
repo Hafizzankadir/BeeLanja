@@ -16,49 +16,6 @@ const CheckCircle = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org
 const Crown = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/></svg>;
 const X = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
 
-// --- BeeLanja Logo SVG ---
-const BeeLogo = ({ className = 'w-8 h-8' }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        viewBox="0 0 32 32" 
-        className={className} 
-        fill="none" 
-        stroke="#3E2723" // Dark Brown Stroke for general outline
-        strokeWidth="1.5"
-    >
-        {/* Define Gradient for Gold/Glossy Effect (for coins and wings) */}
-        <defs>
-            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" style={{ stopColor: "#FFEB3B", stopOpacity: 1 }} />
-                <stop offset="100%" style={{ stopColor: "#FBC02D", stopOpacity: 1 }} />
-            </linearGradient>
-        </defs>
-
-        {/* Outer Ring (Dark Brown) */}
-        <circle cx="16" cy="16" r="14" fill="none" />
-
-        {/* Coin Stack Body (Gold color, dark stroke) */}
-        <g fill="url(#goldGradient)" stroke="#3E2723" strokeWidth="1.5">
-            <circle cx="16" cy="12" r="3.5" />
-            <circle cx="16" cy="16" r="4.5" />
-            <circle cx="16" cy="20" r="3.5" />
-            
-            {/* Dollar Sign on the center coin (Green color) */}
-            <text x="16" y="17.5" fontSize="6" fontWeight="bold" textAnchor="middle" fill="#4CAF50" style={{ fontFamily: 'Inter, sans-serif' }}>$</text>
-        </g>
-
-        {/* Wings (Glossy Gold) */}
-        <path d="M16 12 Q 28 5, 25 12 T 16 12 Z" fill="url(#goldGradient)" stroke="#3E2723" strokeWidth="1" />
-        <path d="M16 12 Q 4 5, 7 12 T 16 12 Z" fill="url(#goldGradient)" stroke="#3E2723" strokeWidth="1" />
-
-        {/* Head/Antennae (Dark Brown) */}
-        <circle cx="16" cy="9" r="1.5" fill="#3E2723" stroke="none" />
-        <line x1="16" y1="9" x2="18" y2="6" strokeWidth="2" />
-        <line x1="16" y1="9" x2="14" y2="6" strokeWidth="2" />
-    </svg>
-);
-
-
 // --- MOCK/INITIAL DATA ---
 
 const initialGoals = [
@@ -148,7 +105,9 @@ const useFirebaseSetup = () => {
 const Header = ({ onMenuClick, currentView, isPremium }) => (
     <div className="flex justify-between items-center p-4 bg-yellow-500 shadow-md rounded-b-xl sticky top-0 z-10">
         <div className="flex items-center space-x-2">
-            <BeeLogo className="w-8 h-8" /> 
+            <span className="text-3xl font-extrabold">
+                🐝
+            </span>
             <h1 className="text-xl font-black text-white">
                 <span className="tracking-tighter">BEE</span>LANJA
             </h1>
