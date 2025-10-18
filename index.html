@@ -1,0 +1,690 @@
+import React, { useState, useEffect, useMemo } from 'react';
+
+// Required Firebase Imports (Using local state for MVP, but keeping structure for future integration)
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, getDocs } from 'firebase/firestore';
+
+// Lucide Icons (A clean set of icons for modern UI)
+const Home = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const Target = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>;
+const BarChart3 = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>;
+const DollarSign = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>;
+const Menu = ({ className = 'w-6 h-6' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>;
+const Zap = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+const CheckCircle = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg>;
+const Crown = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/></svg>;
+const X = ({ className = 'w-5 h-5' }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+
+// --- BeeLanja Logo SVG ---
+const BeeLogo = ({ className = 'w-8 h-8' }) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        viewBox="0 0 32 32" 
+        className={className} 
+        fill="none" 
+        stroke="#3E2723" // Dark Brown Stroke for general outline
+        strokeWidth="1.5"
+    >
+        {/* Define Gradient for Gold/Glossy Effect (for coins and wings) */}
+        <defs>
+            <linearGradient id="goldGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style={{ stopColor: "#FFEB3B", stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: "#FBC02D", stopOpacity: 1 }} />
+            </linearGradient>
+        </defs>
+
+        {/* Outer Ring (Dark Brown) */}
+        <circle cx="16" cy="16" r="14" fill="none" />
+
+        {/* Coin Stack Body (Gold color, dark stroke) */}
+        <g fill="url(#goldGradient)" stroke="#3E2723" strokeWidth="1.5">
+            <circle cx="16" cy="12" r="3.5" />
+            <circle cx="16" cy="16" r="4.5" />
+            <circle cx="16" cy="20" r="3.5" />
+            
+            {/* Dollar Sign on the center coin (Green color) */}
+            <text x="16" y="17.5" fontSize="6" fontWeight="bold" textAnchor="middle" fill="#4CAF50" style={{ fontFamily: 'Inter, sans-serif' }}>$</text>
+        </g>
+
+        {/* Wings (Glossy Gold) */}
+        <path d="M16 12 Q 28 5, 25 12 T 16 12 Z" fill="url(#goldGradient)" stroke="#3E2723" strokeWidth="1" />
+        <path d="M16 12 Q 4 5, 7 12 T 16 12 Z" fill="url(#goldGradient)" stroke="#3E2723" strokeWidth="1" />
+
+        {/* Head/Antennae (Dark Brown) */}
+        <circle cx="16" cy="9" r="1.5" fill="#3E2723" stroke="none" />
+        <line x1="16" y1="9" x2="18" y2="6" strokeWidth="2" />
+        <line x1="16" y1="9" x2="14" y2="6" strokeWidth="2" />
+    </svg>
+);
+
+
+// --- MOCK/INITIAL DATA ---
+
+const initialGoals = [
+    { id: 1, name: "Travel Fund (Bali)", target: 5000, saved: 1250, icon: "✈️" },
+    { id: 2, name: "New Laptop", target: 1500, saved: 850, icon: "💻" },
+    { id: 3, name: "Emergency Buffer", target: 2000, saved: 300, icon: "🏥" },
+];
+
+const initialTransactions = [
+    { id: 1, merchant: "Coffee Shop", amount: 4.60, date: "2025-10-17", roundUpSaved: 0.40 },
+    { id: 2, merchant: "Grocery Store", amount: 35.15, date: "2025-10-16", roundUpSaved: 0.85 },
+    { id: 3, merchant: "Online Subscription", amount: 12.00, date: "2025-10-15", roundUpSaved: 0.00 },
+];
+
+const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+};
+
+// --- FIREBASE/AUTH SETUP (Boilerplate - Required) ---
+const useFirebaseSetup = () => {
+    const [db, setDb] = useState(null);
+    const [auth, setAuth] = useState(null);
+    const [userId, setUserId] = useState(null);
+    const [isAuthReady, setIsAuthReady] = useState(false);
+    
+    // Default values if environment variables are not available
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-beelanja-app-id';
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+    let firebaseConfig = null;
+
+    try {
+        firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    } catch (e) {
+        console.error("Error parsing __firebase_config:", e);
+        firebaseConfig = {};
+    }
+
+    useEffect(() => {
+        if (Object.keys(firebaseConfig).length === 0) {
+             console.warn("Firebase configuration is missing or empty.");
+             setIsAuthReady(true); // Proceed without real auth if config is missing
+             return;
+        }
+
+        const app = initializeApp(firebaseConfig);
+        const firestore = getFirestore(app);
+        const authentication = getAuth(app);
+        
+        setDb(firestore);
+        setAuth(authentication);
+
+        const unsubscribe = onAuthStateChanged(authentication, async (user) => {
+            if (user) {
+                setUserId(user.uid);
+            } else {
+                // Sign in anonymously if no token provided or previous session
+                try {
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(authentication, initialAuthToken);
+                    } else {
+                        await signInAnonymously(authentication);
+                    }
+                    // This will trigger the onAuthStateChanged listener again
+                } catch (error) {
+                    console.error("Firebase Auth Error:", error);
+                    // Use a random ID if anonymous sign-in fails
+                    setUserId(crypto.randomUUID()); 
+                }
+            }
+            setIsAuthReady(true);
+        });
+
+        return () => unsubscribe();
+    }, [initialAuthToken, JSON.stringify(firebaseConfig)]);
+
+    // Firestore logging (optional but good practice)
+    // useEffect(() => {
+    //     if (db) {
+    //         setLogLevel('Debug');
+    //     }
+    // }, [db]);
+
+    return { db, auth, userId, appId, isAuthReady };
+};
+// --- END FIREBASE SETUP ---
+
+const Header = ({ onMenuClick, currentView, isPremium }) => (
+    <div className="flex justify-between items-center p-4 bg-yellow-500 shadow-md rounded-b-xl sticky top-0 z-10">
+        <div className="flex items-center space-x-2">
+            <BeeLogo className="w-8 h-8" /> 
+            <h1 className="text-xl font-black text-white">
+                <span className="tracking-tighter">BEE</span>LANJA
+            </h1>
+        </div>
+        <div className="flex items-center space-x-2">
+            {isPremium && (
+                <span className="text-sm font-semibold text-gray-800 bg-yellow-200 px-3 py-1 rounded-full flex items-center shadow-inner">
+                    <Crown className="w-4 h-4 mr-1 text-yellow-600"/> PREMIUM
+                </span>
+            )}
+            <button
+                onClick={onMenuClick}
+                className="p-2 text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg transition-colors shadow-lg"
+                aria-label="Open menu"
+            >
+                <Menu />
+            </button>
+        </div>
+    </div>
+);
+
+const NavBar = ({ currentView, setCurrentView }) => {
+    const navItems = [
+        { key: 'dashboard', label: 'Home', Icon: Home },
+        { key: 'goals', label: 'Goals', Icon: Target },
+        { key: 'transactions', label: 'Spend', Icon: DollarSign },
+        { key: 'advice', label: 'Advisor', Icon: BarChart3 },
+    ];
+
+    return (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-20">
+            <div className="flex justify-around">
+                {navItems.map(({ key, label, Icon }) => (
+                    <button
+                        key={key}
+                        onClick={() => setCurrentView(key)}
+                        className={`flex flex-col items-center py-2 px-3 transition-colors rounded-t-xl w-1/4 ${
+                            currentView === key
+                                ? 'text-yellow-600 font-bold bg-yellow-50 shadow-inner'
+                                : 'text-gray-500 hover:text-yellow-600'
+                        }`}
+                    >
+                        <Icon className="w-5 h-5 mb-1" />
+                        <span className="text-xs">{label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// --- SUB-COMPONENTS ---
+
+const SavingsGoals = ({ goals, setGoals }) => {
+    const totalRoundUp = goals.reduce((sum, goal) => sum + goal.saved, 0);
+
+    const GoalCard = ({ goal }) => {
+        const progress = Math.min(100, (goal.saved / goal.target) * 100);
+        return (
+            <div className="p-4 bg-white rounded-xl shadow-lg border border-gray-100 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-2xl">{goal.icon}</span>
+                    <span className="text-sm font-semibold text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                        {Math.round(progress)}% Complete
+                    </span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-1">{goal.name}</h3>
+                <p className="text-2xl font-extrabold text-yellow-600">
+                    {formatCurrency(goal.saved)}
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                    Target: {formatCurrency(goal.target)}
+                </p>
+
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                        className="h-2.5 rounded-full bg-yellow-500 transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                    ></div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="p-4 pt-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Saving Goals</h2>
+            
+            <div className="p-4 mb-6 bg-yellow-50 rounded-xl shadow-inner border border-yellow-200">
+                <p className="text-sm font-medium text-gray-600">Total Round-Up Savings</p>
+                <p className="text-4xl font-extrabold text-yellow-600 mt-1">
+                    {formatCurrency(totalRoundUp)}
+                </p>
+            </div>
+
+            {goals.map(goal => (
+                <GoalCard key={goal.id} goal={goal} />
+            ))}
+
+            <button className="w-full py-3 mt-4 bg-gray-800 text-white font-semibold rounded-xl hover:bg-gray-700 transition-colors shadow-lg">
+                + Add New Goal
+            </button>
+        </div>
+    );
+};
+
+const RoboAdvice = ({ isPremium }) => {
+    const analysis = {
+        spendingCategory: "Dining Out",
+        percentage: "42%",
+        trend: "up 15% from last month",
+        basicTip: "Try packing lunch twice a week to save $20.",
+        premiumLesson: "Detailed video lesson on 'The 50/30/20 Rule' and automated budget re-allocation suggestion.",
+        customization: "You have 3 custom savings rules active.",
+    };
+
+    return (
+        <div className="p-4 pt-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                <BarChart3 className="w-6 h-6 mr-2 text-yellow-600" /> Robo-Advisor Insight
+            </h2>
+
+            <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border border-gray-100">
+                <h3 className="text-xl font-bold text-gray-700 mb-3">Your Spending Pattern</h3>
+                <p className="text-gray-600 mb-4">
+                    In the last 30 days, <span className="font-semibold text-red-500">{analysis.percentage}</span> of your discretionary budget went to <span className="font-semibold">{analysis.spendingCategory}</span>, which is <span className="font-semibold text-red-500">{analysis.trend}</span>.
+                </p>
+                
+                <h3 className="text-lg font-bold text-gray-700 mb-2 mt-4">Actionable Advice</h3>
+                <p className="p-3 bg-blue-50 text-blue-800 border-l-4 border-blue-400 rounded-r-md shadow-sm">
+                    <Zap className="w-4 h-4 inline mr-1" /> **Basic Tip:** {analysis.basicTip}
+                </p>
+
+                <div className={`mt-6 p-4 rounded-xl transition-all duration-300 ${isPremium ? 'bg-yellow-100 shadow-md border-2 border-yellow-500' : 'bg-gray-100 opacity-60'}`}>
+                    <h4 className="font-bold flex items-center text-yellow-600 mb-2">
+                        <Crown className="w-5 h-5 mr-1" /> PREMIUM ADVANTAGE
+                    </h4>
+                    {isPremium ? (
+                        <>
+                            <p className="text-gray-800 mb-3">
+                                **Personalized Lesson:** {analysis.premiumLesson}
+                            </p>
+                            <p className="text-sm text-gray-600 font-medium">
+                                **Customization:** {analysis.customization}
+                            </p>
+                            <button className="mt-3 w-full py-2 bg-yellow-500 text-white font-semibold rounded-lg hover:bg-yellow-600 transition-colors">
+                                Access My Lesson
+                            </button>
+                        </>
+                    ) : (
+                        <p className="text-gray-700 font-semibold">
+                            Upgrade to Premium for personalized lessons and automated budget re-allocation!
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const Transactions = ({ transactions, setTransactions, setGoals, goals }) => {
+    const [merchant, setMerchant] = useState('Local Cafe');
+    const [amount, setAmount] = useState('4.60');
+    const [message, setMessage] = useState('');
+
+    const handleTransaction = (e) => {
+        e.preventDefault();
+        
+        const txAmount = parseFloat(amount);
+        if (isNaN(txAmount) || txAmount <= 0) {
+            setMessage('Please enter a valid amount.');
+            return;
+        }
+
+        // --- ROUND UP LOGIC (Save as you Spend) ---
+        const roundedAmount = Math.ceil(txAmount);
+        const roundUp = parseFloat((roundedAmount - txAmount).toFixed(2));
+        // ------------------------------------------
+
+        const newTx = {
+            id: Date.now(),
+            merchant,
+            amount: txAmount,
+            date: new Date().toISOString().substring(0, 10),
+            roundUpSaved: roundUp,
+        };
+
+        // 1. Update Transactions
+        setTransactions(prev => [newTx, ...prev]);
+
+        // 2. Update Goals (distribute round-up savings to the first goal for simplicity)
+        if (goals.length > 0) {
+            setGoals(prev => prev.map((goal, index) => 
+                index === 0 
+                ? { ...goal, saved: goal.saved + roundUp } 
+                : goal
+            ));
+        }
+
+        setMessage(`✅ Transaction of ${formatCurrency(txAmount)} completed. Round-up saved: ${formatCurrency(roundUp)}!`);
+        setAmount('');
+        setMerchant('');
+    };
+
+    return (
+        <div className="p-4 pt-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Simulate Spending (tarus QR)</h2>
+
+            {/* Transaction Simulator */}
+            <div className="bg-yellow-50 p-6 rounded-xl shadow-lg mb-8 border border-yellow-200">
+                <form onSubmit={handleTransaction}>
+                    <p className="text-sm font-semibold text-yellow-700 mb-4">
+                        Tarus QR Integration: Every transaction automatically rounds up!
+                    </p>
+                    
+                    <div className="mb-4">
+                        <label htmlFor="merchant" className="block text-sm font-medium text-gray-700 mb-1">
+                            Merchant Name
+                        </label>
+                        <input
+                            type="text"
+                            id="merchant"
+                            value={merchant}
+                            onChange={(e) => setMerchant(e.target.value)}
+                            placeholder="e.g., Bookstore, Pharmacy"
+                            required
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-yellow-500 focus:border-yellow-500 transition-shadow"
+                        />
+                    </div>
+
+                    <div className="mb-6">
+                        <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
+                            Transaction Amount (e.g., 4.60)
+                        </label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-lg font-bold text-gray-500">$</span>
+                            <input
+                                type="number"
+                                id="amount"
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0.01"
+                                required
+                                className="w-full p-3 pl-8 border border-gray-300 rounded-lg text-lg focus:ring-yellow-500 focus:border-yellow-500 transition-shadow"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="w-full py-3 bg-yellow-600 text-white font-extrabold rounded-xl hover:bg-yellow-700 transition-colors shadow-xl"
+                    >
+                        Simulate Tarus QR Payment
+                    </button>
+                </form>
+
+                {message && (
+                    <div className={`mt-4 p-3 rounded-lg text-center font-medium ${message.startsWith('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {message}
+                    </div>
+                )}
+            </div>
+
+            {/* Transaction History */}
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Recent Transactions</h3>
+            <div className="space-y-3 pb-20">
+                {transactions.slice(0, 5).map(tx => (
+                    <div key={tx.id} className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                        <div className="flex flex-col">
+                            <span className="font-semibold text-gray-800">{tx.merchant}</span>
+                            <span className="text-xs text-gray-500">{tx.date}</span>
+                        </div>
+                        <div className="text-right">
+                            <span className="block text-lg font-bold text-red-500">{formatCurrency(tx.amount)}</span>
+                            {tx.roundUpSaved > 0 && (
+                                <span className="block text-xs font-semibold text-yellow-600 bg-yellow-100 px-2 rounded-full mt-1">
+                                    + {formatCurrency(tx.roundUpSaved)} Saved
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                {transactions.length === 0 && <p className="text-center text-gray-500 mt-4">No transactions yet.</p>}
+            </div>
+        </div>
+    );
+};
+
+const Dashboard = ({ goals, transactions, user }) => {
+    const totalRoundUpSaved = useMemo(() => {
+        return transactions.reduce((sum, tx) => sum + tx.roundUpSaved, 0);
+    }, [transactions]);
+
+    const activeGoal = goals.find(g => g.id === 1); // Use first goal as main
+    const progress = activeGoal ? Math.min(100, (activeGoal.saved / activeGoal.target) * 100) : 0;
+
+    const totalSpent = useMemo(() => {
+        return transactions.slice(0, 5).reduce((sum, tx) => sum + tx.amount, 0);
+    }, [transactions]);
+
+    return (
+        <div className="p-4 pt-8">
+            <h2 className="text-xl font-semibold text-gray-600 mb-1">Welcome back, {user.name}!</h2>
+
+            {/* Main Balance Card */}
+            <div className="bg-gray-800 text-white p-6 rounded-xl shadow-2xl mb-6">
+                <p className="text-sm font-light">Current Balance</p>
+                <p className="text-4xl font-extrabold mt-1 tracking-tight">
+                    {formatCurrency(user.balance)}
+                </p>
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-700">
+                    <div>
+                        <p className="text-xs font-light">Total Saved (Round-ups)</p>
+                        <p className="text-xl font-bold text-yellow-400">
+                            {formatCurrency(totalRoundUpSaved)}
+                        </p>
+                    </div>
+                    <button className="bg-yellow-500 text-gray-900 font-bold px-4 py-2 rounded-full text-sm shadow-md hover:bg-yellow-400 transition-colors">
+                        View Stats
+                    </button>
+                </div>
+            </div>
+
+            {/* Primary Goal Progress Card */}
+            {activeGoal && (
+                <div className="bg-white p-6 rounded-xl shadow-lg mb-6 border border-gray-100">
+                    <h3 className="text-lg font-bold text-gray-800 mb-3 flex justify-between items-center">
+                        {activeGoal.icon} {activeGoal.name}
+                        <span className="text-sm font-semibold text-yellow-600">{Math.round(progress)}%</span>
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-2">
+                        {formatCurrency(activeGoal.saved)} of {formatCurrency(activeGoal.target)}
+                    </p>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div
+                            className="h-3 rounded-full bg-yellow-500 transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                        ></div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Spending Summary (Gamification Component) */}
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
+                    <Zap className="w-5 h-5 mr-2 text-yellow-600" /> Spending Streak
+                </h3>
+                <p className="text-3xl font-extrabold text-green-600 mb-2">
+                    7 Days
+                </p>
+                <p className="text-sm text-gray-600">
+                    You've stuck to your budget and saved every day for a week! Keep going!
+                </p>
+            </div>
+
+            {/* Quick Recent Transactions */}
+            <h3 className="text-lg font-bold text-gray-800 mb-3">Recent Activity</h3>
+            <div className="space-y-2 pb-20">
+                {transactions.slice(0, 3).map(tx => (
+                    <div key={tx.id} className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100">
+                        <div className="flex items-center">
+                            <span className="text-sm font-medium text-gray-800">{tx.merchant}</span>
+                        </div>
+                        <div className="text-right">
+                            <span className="block text-md font-bold text-red-500">{formatCurrency(tx.amount)}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+const SubscriptionModal = ({ onClose, setIsPremium, isPremium }) => {
+    const tiers = [
+        { 
+            name: "Basic (Current)", 
+            price: "Free", 
+            features: [
+                "Goal Based Saving", 
+                "Save-As-You-Spend (Round-ups)", 
+                "Automated Generic Advice",
+            ],
+            isCurrent: !isPremium
+        },
+        { 
+            name: "Premium Tier", 
+            price: "$5.99/mo", 
+            features: [
+                "All Basic features",
+                "Personalized Robo-Advisor (AI)",
+                "Custom Savings Rules (e.g., 2x Round-up)",
+                "Interactive Educational Lessons",
+                "Advanced Spending Analysis"
+            ],
+            isCurrent: isPremium
+        },
+    ];
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+                <div className="p-6">
+                    <div className="flex justify-between items-center border-b pb-3 mb-4">
+                        <h2 className="text-2xl font-black text-gray-800 flex items-center">
+                            <Crown className="w-6 h-6 mr-2 text-yellow-600" /> Subscription Tiers
+                        </h2>
+                        <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500">
+                            <X className="w-6 h-6" />
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {tiers.map((tier, index) => (
+                            <div key={index} className={`p-5 rounded-xl border-2 transition-all ${tier.isCurrent ? 'border-yellow-500 bg-yellow-50 shadow-md' : 'border-gray-200'}`}>
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="text-xl font-bold text-gray-800">{tier.name}</h3>
+                                    <span className={`text-xl font-black ${tier.isCurrent ? 'text-yellow-600' : 'text-gray-700'}`}>{tier.price}</span>
+                                </div>
+                                <ul className="space-y-1 mt-3 text-sm text-gray-600">
+                                    {tier.features.map((feature, i) => (
+                                        <li key={i} className="flex items-start">
+                                            <CheckCircle className="w-4 h-4 mr-2 mt-1 flex-shrink-0 text-green-500" />
+                                            <span>{feature}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                                
+                                <div className="mt-4">
+                                    {tier.isCurrent ? (
+                                        <span className={`w-full py-2 text-center text-sm font-bold rounded-lg ${!isPremium ? 'bg-gray-200 text-gray-600' : 'bg-yellow-500 text-gray-900'} block`}>
+                                            {isPremium ? 'Active Plan' : 'Current Plan'}
+                                        </span>
+                                    ) : (
+                                        <button 
+                                            onClick={() => { setIsPremium(true); onClose(); }}
+                                            className="w-full py-2 bg-yellow-600 text-white font-bold rounded-lg hover:bg-yellow-700 transition-colors shadow-md text-sm"
+                                        >
+                                            Activate Premium
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN APP COMPONENT ---
+
+const App = () => {
+    // Firebase State (used as per instructions)
+    const { userId, appId, isAuthReady } = useFirebaseSetup();
+
+    // App State
+    const [currentView, setCurrentView] = useState('dashboard');
+    const [user, setUser] = useState({ name: 'Maya', balance: 1200.50, isPremium: false });
+    const [savingsGoals, setSavingsGoals] = useState(initialGoals);
+    const [transactions, setTransactions] = useState(initialTransactions);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    // Initial sign-in check and state update placeholder
+    useEffect(() => {
+        if (isAuthReady && userId) {
+            console.log(`User ID: ${userId} connected to App ID: ${appId}`);
+            // In a real app, this is where you would fetch user data from Firestore:
+            // const userDocRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'data');
+            // onSnapshot(userDocRef, (doc) => { /* update state */ });
+        }
+    }, [isAuthReady, userId, appId]);
+
+    const handleMenuClick = () => {
+        setIsMenuOpen(true);
+    };
+
+    const handleUpgrade = () => {
+        setUser(prev => ({ ...prev, isPremium: true }));
+        setIsMenuOpen(false);
+    };
+
+    const renderContent = () => {
+        switch (currentView) {
+            case 'goals':
+                return <SavingsGoals goals={savingsGoals} setGoals={setSavingsGoals} />;
+            case 'transactions':
+                return <Transactions 
+                    transactions={transactions} 
+                    setTransactions={setTransactions} 
+                    goals={savingsGoals}
+                    setGoals={setSavingsGoals}
+                />;
+            case 'advice':
+                return <RoboAdvice isPremium={user.isPremium} />;
+            case 'dashboard':
+            default:
+                return <Dashboard 
+                    goals={savingsGoals} 
+                    transactions={transactions} 
+                    user={user}
+                />;
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 font-sans pb-20 max-w-lg mx-auto shadow-xl">
+            <style>
+                {`
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+                body { font-family: 'Inter', sans-serif; }
+                /* Ensure full screen height for mobile view */
+                html, body, #root { height: 100%; }
+                `}
+            </style>
+            
+            <Header onMenuClick={handleMenuClick} currentView={currentView} isPremium={user.isPremium} />
+
+            <main className="min-h-[calc(100vh-140px)]">
+                {renderContent()}
+            </main>
+
+            <NavBar currentView={currentView} setCurrentView={setCurrentView} />
+
+            {isMenuOpen && (
+                <SubscriptionModal 
+                    onClose={() => setIsMenuOpen(false)} 
+                    setIsPremium={handleUpgrade} 
+                    isPremium={user.isPremium}
+                />
+            )}
+        </div>
+    );
+};
+
+export default App;
